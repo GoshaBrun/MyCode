@@ -1,0 +1,25 @@
+#include <stdio.h>
+#include <Windows.h>
+
+
+int main() {
+
+    SetConsoleOutputCP(1251);
+    SetConsoleCP(1251);
+
+    int L, S;
+    double R0 = 1.68/(100000000);
+
+    printf("Введіть довжину L: ");
+    scanf_s("%d", &L);
+    printf("Введіть площу поперечного перерізу S: ");
+    scanf_s("%d", &S);
+
+    printf("\nФормула для розрахунку опору R: R = R0 * L / S\n");
+
+    double R = R0 * L / S;
+
+    printf("Значення опору R: %.3g Ом\n", R);
+
+    return 110;
+}
