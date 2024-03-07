@@ -1,0 +1,190 @@
+import tkinter as tk
+from tkinter import colorchooser
+from tkinter import filedialog
+
+class GraphicsEditor:
+    def __init__(self):
+        self.window = tk.Tk()
+        self.window.title("Графічний редактор")
+
+        self.canvas_width = 800
+        self.canvas_height = 600
+
+        self.canvas = tk.Canvas(self.window, width=self.canvas_width, height=self.canvas_height, bg="white")
+        self.canvas.pack()
+
+        self.current_shape = None
+        self.current_color = "black"
+        self.current_border_color = "black"
+        self.current_border_width = 1
+
+        self.draw_line_button = tk.Button(self.window, text="Лінія", command=self.set_line_mode)
+        self.draw_line_button.pack(side=tk.LEFT, padx=5)
+
+        self.draw_rectangle_button = tk.Button(self.window, text="Прямокутник", command=self.set_rectangle_mode)
+        self.draw_rectangle_button.pack(side=tk.LEFT, padx=5)
+
+        self.draw_triangle_button = tk.Button(self.window, text="Трикутник", command=self.set_triangle_mode)
+        self.draw_triangle_button.pack(side=tk.LEFT, padx=5)
+
+        self.draw_ellipse_button = tk.Button(self.window, text="Еліпс", command=self.set_ellipse_mode)
+        self.draw_ellipse_button.pack(side=tk.LEFT, padx=5)
+
+        self.eraser_button = tk.Button(self.window, text="Гумка", command=self.set_eraser_mode)
+        self.eraser_button.pack(side=tk.LEFT, padx=5)
+
+        self.color_button = tk.Button(self.window, text="Колір фігури", command=self.choose_color)
+        self.color_button.pack(side=tk.LEFT, padx=5)
+
+        self.border_color_button = tk.Button(self.window, text="Границя фігури", command=self.choose_border_color)
+        self.border_color_button.pack(side=tk.LEFT, padx=5)
+
+        self.change_bg_color_button = tk.Button(self.window, text="Змінити фон", command=self.change_bg_color)
+        self.change_bg_color_button.pack(side=tk.LEFT, padx=5)
+
+        self.add_image_button = tk.Button(self.window, text="Додати зображення", command=self.add_image)
+        self.add_image_button.pack(side=tk.LEFT, padx=5)
+
+        self.save_button = tk.Button(self.window, text="Зберегти", command=self.save_image)
+        self.save_button.pack(side=tk.LEFT, padx=5)
+
+        self.load_button = tk.Button(self.window, text="Відкрити", command=self.load_image)
+        self.load_button.pack(side=tk.LEFT, padx=5)
+
+        self.canvas.bind("<Button-1>", self.start_drawing)
+        self.canvas.bind("<B1-Motion>", self.continue_drawing)
+        self.canvas.bind("<ButtonRelease-1>", self.stop_drawing)
+
+    def set_line_mode(self):
+        self.current_shape = "line"
+
+    def set_rectangle_mode(self):
+        self.current_shape = "rectangle"
+
+    def set_triangle_mode(self):
+        self.current_shape = "triangle"
+
+    def set_ellipse_mode(self):
+        self.current_shape = "ellipse"
+
+    def set_eraser_mode(self):
+        self.current_shape = "eraser"
+
+    def choose_color(self):
+        color = colorchooser.askcolor()
+        if color:
+            self.current_color = color[1]
+
+    def choose_border_color(self):
+        color = colorchooser.askcolor()
+        if color:
+            self.current_border_color = color[1]
+
+    def change_bg_color(self):
+        color = colorchooser.askcolor()
+        if color:
+            self.canvas.config(bg=color[1])
+
+    def add_image(self):
+        file_path = filedialog.askopenfilename(filetypes=[("Image files", "*.png;*.jpg;*.jpeg;*.gif")])
+        if file_path:
+            try:
+                image = tk.PhotoImage(file=file_path)
+                # Center the image on the canvas
+                x = (self.canvas_width - image.width()) // 2
+                y = (self.canvas_height - image.height()) // 2
+                self.canvas.create_image(x, y, anchor=tk.NW, image=image)
+                self.canvas.image = image  # To prevent garbage collection
+            except tk.TclError:
+                print("Error loading the image.")
+
+    def start_drawing(self, event):
+        self.start_x = event.x
+        self.start_y = event.y
+
+    def continue_drawing(self, event):
+        if self.current_shape == "line":
+            self.canvas.delete("temp_shape")
+            self.canvas.create_line(self.start_x, self.start_y, event.x, event.y, fill=self.current_color,
+                                    width=self.current_border_width, tags="temp_shape")
+        elif self.current_shape == "rectangle":
+            self.canvas.delete("temp_shape")
+            self.canvas.create_rectangle(self.start_x, self.start_y, event.x, event.y, outline=self.current_border_color,
+                                         fill=self.current_color, width=self.current_border_width, tags="temp_shape")
+        elif self.current_shape == "triangle":
+            self.canvas.delete("temp_shape")
+            # Adjust the coordinates to create a triangle based on the start and current positions
+            coords = [self.start_x, self.start_y, (self.start_x + event.x) / 2, event.y, event.x, self.start_y]
+            self.canvas.create_polygon(coords, outline=self.current_border_color, fill=self.current_color,
+                                       width=self.current_border_width, tags="temp_shape")
+        elif self.current_shape == "ellipse":
+            self.canvas.delete("temp_shape")
+            self.canvas.create_oval(self.start_x, self.start_y, event.x, event.y, outline=self.current_border_color,
+                                    fill=self.current_color, width=self.current_border_width, tags="temp_shape")
+        elif self.current_shape == "eraser":
+            # Use a rectangle to simulate the eraser
+            self.canvas.create_rectangle(event.x - 5, event.y - 5, event.x + 5, event.y + 5, fill="white",
+                                         outline="white")
+
+    def stop_drawing(self, event):
+        self.canvas.delete("temp_shape")
+        if self.current_shape == "line":
+            self.canvas.create_line(self.start_x, self.start_y, event.x, event.y, fill=self.current_color,
+                                    width=self.current_border_width)
+        elif self.current_shape == "rectangle":
+            self.canvas.create_rectangle(self.start_x, self.start_y, event.x, event.y, outline=self.current_border_color,
+                                         fill=self.current_color, width=self.current_border_width)
+        elif self.current_shape == "triangle":
+            self.canvas.delete("temp_shape")
+            coords = [self.start_x, self.start_y, (self.start_x + event.x) / 2, event.y, event.x, self.start_y]
+            self.canvas.create_polygon(coords, outline=self.current_border_color, fill=self.current_color,
+                                       width=self.current_border_width)
+        elif self.current_shape == "ellipse":
+            self.canvas.create_oval(self.start_x, self.start_y, event.x, event.y, outline=self.current_border_color,
+                                    fill=self.current_color, width=self.current_border_width)
+        elif self.current_shape == "eraser":
+            pass
+    def save_image(self):
+        file_path = filedialog.asksaveasfilename(defaultextension=".txt")
+        if file_path:
+            shapes = self.canvas.find_all()
+            data = []
+            for shape_id in shapes:
+                shape_type = self.canvas.type(shape_id)
+                shape_coords = self.canvas.coords(shape_id)
+                shape_color = self.canvas.itemcget(shape_id, "fill")
+                shape_border_color = self.canvas.itemcget(shape_id, "outline")
+                shape_border_width = self.canvas.itemcget(shape_id, "width")
+                data.append((shape_type, shape_coords, shape_color, shape_border_color, shape_border_width))
+            with open(file_path, "w") as file:
+                for item in data:
+                    file.write(str(item) + "\n")
+            print("Зображення збережено.")
+
+    def load_image(self):
+        file_path = filedialog.askopenfilename(defaultextension=".txt")
+        if file_path:
+            self.canvas.delete("all")
+            with open(file_path, "r") as file:
+                data = file.readlines()
+                for item in data:
+                    shape_type, shape_coords, shape_color, shape_border_color, shape_border_width = eval(item)
+                    if shape_type == "line":
+                        self.canvas.create_line(shape_coords, fill=shape_color, width=shape_border_width)
+                    elif shape_type == "rectangle":
+                        self.canvas.create_rectangle(shape_coords, outline=shape_border_color, fill=shape_color,
+                                                     width=shape_border_width)
+                    elif shape_type == "triangle":
+                        self.canvas.create_polygon(shape_coords, outline=shape_border_color, fill=shape_color,
+                                                    width=shape_border_width)
+                    elif shape_type == "oval":
+                        self.canvas.create_oval(shape_coords, outline=shape_border_color, fill=shape_color,
+                                                     width=shape_border_width)
+            print("Зображення завантажено.")
+
+    def run(self):
+        self.window.mainloop()
+
+if __name__ == '__main__':
+    editor = GraphicsEditor()
+    editor.run()
